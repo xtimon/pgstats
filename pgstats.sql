@@ -92,6 +92,21 @@ JOIN pg_class c ON s.relname = c.relname
 WHERE s.n_dead_tup > (current_setting('autovacuum_vacuum_threshold')::int + (current_setting('autovacuum_vacuum_scale_factor')::float4 * c.reltuples));
 
 \echo
+\echo ========= Tuples state `date` =========
+select relname, 
+       n_live_tup as LIVE,
+       n_dead_tup as DEAD,
+       (case when (n_live_tup>0 AND n_dead_tup>0)
+            then (n_dead_tup*100/n_live_tup) 
+            else 0
+            END) as DEAD_PERC,
+        to_char(last_autoanalyze, 'DD.MM.YY HH24:MI') as last_autoanalyze,
+        to_char(last_autovacuum, 'DD.MM.YY HH24:MI') as last_autovacuum
+from pg_stat_all_tables 
+where relname not like 'pg_%' 
+order by 1,3 desc;
+
+\echo
 \echo ========= Write activity `date` =========
 SELECT s.relname,
        pg_size_pretty(pg_relation_size(relid)),
